@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Xml;
 
 namespace testingtesting4
@@ -23,51 +24,52 @@ namespace testingtesting4
             
         }
 
-        public ObservableCollection<Task>? GetAllTasks()
+        public ObservableCollection<MyTask>? GetAllTasks()
         {
             try
             {
                 string jsonContent = File.ReadAllText(FilePath);
-                return JsonSerializer.Deserialize<ObservableCollection<Task>>(jsonContent);
+                return JsonSerializer.Deserialize<ObservableCollection<MyTask>>(jsonContent);
             }
             catch (Exception)
             {
-                return new ObservableCollection<Task>();
+                return new ObservableCollection<MyTask>();
             }
         }
 
         //modify
         public int GetNextTaskID()
         {
-            ObservableCollection<Task>? tasks = GetAllTasks() ?? new ObservableCollection<Task>();
+            ObservableCollection<MyTask>? tasks = GetAllTasks() ?? new ObservableCollection<MyTask>();
             int id = tasks.Count > 1 ? tasks.Max(i => i.Id) + 1 : 1;
             return id;
         }
 
-        public void CreateTask(Task newTask)
+        public void CreateTask(MyTask newTask)
         {
-            ObservableCollection<Task> tasks = GetAllTasks() ?? new ObservableCollection<Task>();
+            ObservableCollection<MyTask> tasks = GetAllTasks() ?? new ObservableCollection<MyTask>();
             tasks.Add(newTask);
             File.WriteAllText(FilePath, JsonSerializer.Serialize(tasks));
         }
 
-        public void UpdateTask(Task UpdatedTask)
+        public void UpdateTask(MyTask updatedTask)
         {
-            ObservableCollection<Task> tasks = GetAllTasks() ?? new ObservableCollection<Task>();
-            Task? task = tasks.FirstOrDefault(i => i.Id == UpdatedTask.Id);
+            ObservableCollection<MyTask> tasks = GetAllTasks() ?? new ObservableCollection<MyTask>();
+            MyTask? task = tasks.FirstOrDefault(i => i.Id == updatedTask.Id);
             if (task != null)
             {
-                UpdatedTask = task;
+                tasks.Remove(task);
+                tasks.Add(updatedTask);
                 File.WriteAllText(FilePath, JsonSerializer.Serialize(tasks));
             }
         }
-        public void DeleteTask(Task DeletedTask)
+        public void DeleteTask(int id)
         {
-            ObservableCollection<Task> tasks = GetAllTasks() ?? new ObservableCollection<Task>();
-            Task? task = tasks.FirstOrDefault(i => i.Id == DeletedTask.Id);
+            ObservableCollection<MyTask> tasks = GetAllTasks() ?? new ObservableCollection<MyTask>();
+            MyTask? task = tasks.FirstOrDefault(i => i.Id == id);
             if (task != null)
             {
-                tasks.Remove(DeletedTask);
+                tasks.Remove(task);
                 File.WriteAllText(FilePath, JsonSerializer.Serialize(tasks));
             }
         }

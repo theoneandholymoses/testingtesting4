@@ -24,16 +24,113 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
-            <Button Content="BackToToday" Margin="5"  Grid.Column="0" Click="BackToToday_Click"/>
+            <Button Content="BackToToday" Margin="5"  Grid.Column="0" Click="BackToToday_Click" Style="{StaticResource WideButton}"/>
             <ComboBox Name="MonthComboBox" SelectionChanged="MonthComboBox_SelectionChanged" Width="120" Margin="5" Grid.Column="1"/>
             <ComboBox Name="YearComboBox" SelectionChanged="YearComboBox_SelectionChanged" Width="120" Margin="5"  Grid.Column="2"/>
-            <Button Content="Previous Week" Click="PrevWeekButton_Click" Margin="5"  Grid.Column="3"/>
-            <Button Content="Next Week" Click="NextWeekButton_Click" Margin="5" Grid.Column="4"/>
-            <Button Content="Create Task" Click="CreateTaskButton_Click" Margin="5"  Grid.Column="5"/>
+            <Button Content="Previous Week" Click="PrevWeekButton_Click" Margin="5"  Grid.Column="3"  Style="{StaticResource WideButton}"/>
+            <Button Content="Next Week" Click="NextWeekButton_Click" Margin="5" Grid.Column="4"  Style="{StaticResource WideButton}"/>
+            <Button Content="Create Task" Click="CreateTaskButton_Click" Margin="5"  Grid.Column="5"  Style="{StaticResource WideButton}"/>
             <TextBlock Name="CurrentMonthYear" Text="" Margin="10" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Top"  Grid.Column="6"/>
         </Grid>
 
         <Grid Name="WeekGrid" Grid.Row="1" Margin="10" Background="White" />
+        <Popup x:Name="TaskPopup" 
+               StaysOpen="False" 
+               IsOpen="False" PlacementTarget="{Binding ElementName=MainWindow}" 
+               Placement="Center" HorizontalAlignment="Center" VerticalAlignment="Center" AllowsTransparency="True">
+            <Border Background="White" BorderBrush="Gray" BorderThickness="2" Padding="20" CornerRadius="10">
+                <StackPanel>
+                    <TextBlock Text="Task Details" FontWeight="Bold" FontSize="16" Margin="0,0,0,10"/>
+                    <!-- Title Field -->
+                    <TextBox x:Name="TaskIDBox" Visibility="Hidden"/>
+                    
+                    <!-- Title Field -->
+                    <TextBlock Text="Title:"/>
+                    <TextBox x:Name="TaskNameBox" Width="200" Margin="0,5,0,10" />
 
+                    <!-- Description Field -->
+                    <TextBlock Text="Description:"/>
+                    <TextBox x:Name="TaskDescriptionBox" Width="200" Height="100" TextWrapping="Wrap" AcceptsReturn="True" Margin="0,5,0,10" />
+
+                    <!-- Location Field -->
+                    <TextBlock Text="Location:"/>
+                    <TextBox x:Name="TaskLocationBox" Width="200" Margin="0,5,0,10"/>
+
+                    <!-- Task Date Field -->
+                    <TextBlock Text="Task Date:"/>
+                    <DatePicker x:Name="TaskDatePicker" Width="200" Margin="0,5,0,10"/>
+
+                    <!-- Start Time Field -->
+                    <TextBlock Text="Start Time:"/>
+                    <ComboBox x:Name="TaskStartTimeComboBox" Width="100" Margin="0,5,0,10">
+                        <!-- Time slots from 00:00 to 23:00 -->
+                        <ComboBoxItem Content="00:00" Tag="00:00"/>
+                        <ComboBoxItem Content="01:00" Tag="01:00"/>
+                        <ComboBoxItem Content="02:00" Tag="02:00"/>
+                        <ComboBoxItem Content="03:00" Tag="03:00"/>
+                        <ComboBoxItem Content="04:00" Tag="04:00"/>
+                        <ComboBoxItem Content="05:00" Tag="05:00"/>
+                        <ComboBoxItem Content="06:00" Tag="06:00"/>
+                        <ComboBoxItem Content="07:00" Tag="07:00"/>
+                        <ComboBoxItem Content="08:00" Tag="08:00"/>
+                        <ComboBoxItem Content="09:00" Tag="09:00"/>
+                        <ComboBoxItem Content="10:00" Tag="10:00"/>
+                        <ComboBoxItem Content="11:00" Tag="11:00"/>
+                        <ComboBoxItem Content="12:00" Tag="12:00"/>
+                        <ComboBoxItem Content="13:00" Tag="13:00"/>
+                        <ComboBoxItem Content="14:00" Tag="14:00"/>
+                        <ComboBoxItem Content="15:00" Tag="15:00"/>
+                        <ComboBoxItem Content="16:00" Tag="16:00"/>
+                        <ComboBoxItem Content="17:00" Tag="17:00"/>
+                        <ComboBoxItem Content="18:00" Tag="18:00"/>
+                        <ComboBoxItem Content="19:00" Tag="19:00"/>
+                        <ComboBoxItem Content="20:00" Tag="20:00"/>
+                        <ComboBoxItem Content="21:00" Tag="21:00"/>
+                        <ComboBoxItem Content="22:00" Tag="22:00"/>
+                        <ComboBoxItem Content="23:00" Tag="23:00"/>
+                        <ComboBoxItem Content="00:00" Tag="23:59"/>
+                    </ComboBox>
+
+                    <!-- End Time Field -->
+                    <TextBlock Text="End Time:"/>
+                    <ComboBox x:Name="TaskEndTimeComboBox" Width="100" Margin="0,5,0,10">
+                        <!-- Time slots from 00:00 to 23:00 -->
+                        <ComboBoxItem Content="00:00" Tag="00:00"/>
+                        <ComboBoxItem Content="01:00" Tag="01:00"/>
+                        <ComboBoxItem Content="02:00" Tag="02:00"/>
+                        <ComboBoxItem Content="03:00" Tag="03:00"/>
+                        <ComboBoxItem Content="04:00" Tag="04:00"/>
+                        <ComboBoxItem Content="05:00" Tag="05:00"/>
+                        <ComboBoxItem Content="06:00" Tag="06:00"/>
+                        <ComboBoxItem Content="07:00" Tag="07:00"/>
+                        <ComboBoxItem Content="08:00" Tag="08:00"/>
+                        <ComboBoxItem Content="09:00" Tag="09:00"/>
+                        <ComboBoxItem Content="10:00" Tag="10:00"/>
+                        <ComboBoxItem Content="11:00" Tag="11:00"/>
+                        <ComboBoxItem Content="12:00" Tag="12:00"/>
+                        <ComboBoxItem Content="13:00" Tag="13:00"/>
+                        <ComboBoxItem Content="14:00" Tag="14:00"/>
+                        <ComboBoxItem Content="15:00" Tag="15:00"/>
+                        <ComboBoxItem Content="16:00" Tag="16:00"/>
+                        <ComboBoxItem Content="17:00" Tag="17:00"/>
+                        <ComboBoxItem Content="18:00" Tag="18:00"/>
+                        <ComboBoxItem Content="19:00" Tag="19:00"/>
+                        <ComboBoxItem Content="20:00" Tag="20:00"/>
+                        <ComboBoxItem Content="21:00" Tag="21:00"/>
+                        <ComboBoxItem Content="22:00" Tag="22:00"/>
+                        <ComboBoxItem Content="23:00" Tag="23:00"/>
+                        <ComboBoxItem Content="00:00" Tag="23:59"/>
+                    </ComboBox>
+
+                    <!-- All Day Toggle -->
+                    <CheckBox x:Name="AllDayCheckBox" Content="All Day" Margin="0,10,0,10" Checked="AllDayCheckBox_Checked" Unchecked="AllDayCheckBox_Unchecked"/>
+
+                    <!-- Submit Button -->
+                    <Button Content="Submit" Width="100" Margin="0,10,0,0" Click="SubmitButton_Click"  Style="{StaticResource WideButton}"/>
+                    <Separator Margin="3" Background="black" BorderThickness="1" />
+                    <Button Content="Delete" Width="100" Margin="0,10,0,0" Click="DeleteButton_Click"  Style="{StaticResource WideButton}"/>
+                </StackPanel>
+            </Border>
+        </Popup>
     </Grid>
 </Window>

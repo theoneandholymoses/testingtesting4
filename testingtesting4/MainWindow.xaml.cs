@@ -6,6 +6,7 @@ using System.Windows.Shapes;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using Microsoft.VisualBasic;
+using System.Text.Json;
 
 namespace testingtesting4
 {
@@ -13,16 +14,14 @@ namespace testingtesting4
     {
         private DateTime currentWeekStart;
         private const int HOURS_IN_DAY = 24;
-        private TaskFileManager taskFileManager;
+        private TaskFileManager taskFileManager = new TaskFileManager();
         private ObservableCollection<MyTask>? tasks;
 
         public MainWindow()
         {
             InitializeComponent();
-            taskFileManager = new TaskFileManager();
             InitializeDateSelectors();
             InitializeWeekGrid();
-            LoadTasks();
         }
 
         private void InitializeDateSelectors()
@@ -50,7 +49,7 @@ namespace testingtesting4
             currentWeekStart = DateTime.Now.StartOfWeek(DayOfWeek.Sunday);
         }
 
-        private void InitializeWeekGrid()
+        private async void InitializeWeekGrid()
         {
             WeekGrid.Children.Clear();
             WeekGrid.RowDefinitions.Clear();
@@ -126,15 +125,37 @@ namespace testingtesting4
                     };
 
                     // Handle mouse leave event to remove highlight
-                    cellBorder.MouseLeave += (s, e) =>
+                    cellBorder.MouseLeave += (s, e) =>  
                     {
                         cellBorder.Background = Brushes.Transparent; // Reset background
                     };
 
                     // Handle mouse left button down event for clicking
-                    cellBorder.MouseLeftButtonDown += (s, e) =>
+                    cellBorder.MouseLeftButtonUp += (s, e) =>
                     {
-                        // Perform the action you want on cell click                   
+                        int columnIndex = Grid.GetColumn(cellBorder);
+                        int rowIndex = Grid.GetRow(cellBorder);
+
+                        // Determine the selected day and hour
+                        if (columnIndex > 0 && rowIndex > 0) // Column 0 is for hours, Column 1 is for the first day
+                        {
+                            DateTime selectedDate = currentWeekStart.AddDays(columnIndex - 1); // Adjust for zero-based index
+                            int selectedHour = rowIndex - 1; // Adjust for zero-based index
+
+                            // Set the DatePicker to the selected date
+                            TaskDatePicker.SelectedDate = selectedDate;
+
+                            // Set the start time ComboBox to the selected hour
+                            TaskStartTimeComboBox.SelectedItem = TaskStartTimeComboBox.Items[selectedHour];
+                            TaskNameBox.Text = "";
+                            TaskIDBox.Text = "";
+                            TaskDescriptionBox.Text = "";
+                            TaskLocationBox.Text = "";
+                            AllDayCheckBox.IsChecked = false; // Reset the all-day checkbox
+
+                            // Open the pop-up
+                            TaskPopup.IsOpen = true;
+                        };
                     };
 
                     Grid.SetRow(cellBorder, hour + 1); // Position according to hour
@@ -142,17 +163,90 @@ namespace testingtesting4
                     WeekGrid.Children.Add(cellBorder);
                 }
             }
-
+            await AddTasksToGrid();
             HighlightCurrentHour();
+            HighlightCurrentDate();
         }
 
-       
+        private async Task AddTasksToGrid()
+        {
+            // Sample JSON parsing
+            ObservableCollection<MyTask> tasks = taskFileManager.GetAllTasks();
+            foreach (MyTask task in tasks)
+            {
+                // Ensure TaskTime is parsed correctly
+                DateTime taskTime = task.TaskTime;
+                // Directly use TimeSpan.Parse, assuming Duration is in "hh:mm:ss" format
+                TimeSpan taskDuration = task.Duration;
+
+                // Calculate the starting hour and duration in rows
+                int startHourRow = taskTime.Hour;
+                // Assuming a 24-hour format
+                double temp = taskDuration.TotalHours;
+                int durationInRows = (int)taskDuration.TotalHours;
+                if((int)temp != temp)
+                {
+                    durationInRows = (int)temp + 1;
+                }
+
+                // Ensure duration does not exceed available rows
+                if (durationInRows + startHourRow > HOURS_IN_DAY)
+                {
+                    durationInRows = HOURS_IN_DAY - startHourRow; // Limit to available rows
+                }
+                int columnIndex = (taskTime - currentWeekStart).Days; // This assumes startOfWeek is the first day of your grid
+
+                // Ensure the column index is within bounds
+                if (columnIndex < 0 || columnIndex >= 7) // Assuming you have 7 columns for the week
+                {
+                    continue; // Skip if the date is outside the week's range
+                }
+                // Create a Border for the task rectangle
+                Border taskBorder = new Border
+                {
+                    Name = "TaskBorderWeek",
+                    Background = GetRandomBrush(), // Set random background color
+                    BorderBrush = Brushes.Gray,
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(5) // Optional for rounded corners
+                };
+                TextBlock titleTextBlock = new TextBlock
+                {
+                    Text = task.Title, // Set the task title
+                    Tag = task.Id,
+                    Foreground = Brushes.White, // Set text color
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    FontWeight = FontWeights.Bold
+                };
+
+                // Add the TextBlock to the Border
+                taskBorder.Child = titleTextBlock;
+                taskBorder.MouseLeftButtonUp += (s, e) =>
+                {
+                    Task_Clicked(s, e);
+                };
+
+                // Set the Grid position for the task
+                Grid.SetRow(taskBorder, startHourRow + 1); // Row + 1 to account for the header
+                Grid.SetColumn(taskBorder, columnIndex + 1); // Assuming you want to display it on the first day (column 1)
+
+                // Set the RowSpan to stretch according to the duration
+                Grid.SetRowSpan(taskBorder, durationInRows);
+
+                // Add the task rectangle to the grid
+                Panel.SetZIndex(taskBorder, 1); // Ensure it's above other elements
+                WeekGrid.Children.Add(taskBorder);
+
+            }
+
+        }
+
 
         private void BackToToday_Click(object sender, RoutedEventArgs e)
         {
             currentWeekStart = DateTime.Now.StartOfWeek(DayOfWeek.Sunday);
             InitializeWeekGrid();
-            LoadTasks();
             UpdateComboBoxes();
 
         }
@@ -162,7 +256,6 @@ namespace testingtesting4
         {
             currentWeekStart = currentWeekStart.AddDays(-7);
             InitializeWeekGrid();
-            LoadTasks();
             UpdateComboBoxes();
         }
 
@@ -170,7 +263,6 @@ namespace testingtesting4
         {
             currentWeekStart = currentWeekStart.AddDays(7);
             InitializeWeekGrid();
-            LoadTasks();
             UpdateComboBoxes();
         }
 
@@ -194,7 +286,6 @@ namespace testingtesting4
                     DateTime firstDayOfSelectedMonth = new DateTime(DateTime.Now.Year, selectedMonth, 1);
                     currentWeekStart = firstDayOfSelectedMonth.StartOfWeek(DayOfWeek.Sunday);
                     InitializeWeekGrid();
-                    LoadTasks();
                 }
                 UpdateCurrentMonthYear();
             }
@@ -210,7 +301,6 @@ namespace testingtesting4
                     DateTime firstDayOfSelectedMonth = new DateTime(selectedYear, DateTime.Now.Month, 1);
                     currentWeekStart = firstDayOfSelectedMonth.StartOfWeek(DayOfWeek.Sunday);
                     InitializeWeekGrid();
-                    LoadTasks();
                 }
                 UpdateCurrentMonthYear();
             }
@@ -249,79 +339,186 @@ namespace testingtesting4
 
                 Grid.SetRow(highlightLine, currentHour + 1);
                 Grid.SetColumnSpan(highlightLine, 8); // Span across all days
+                Panel.SetZIndex(highlightLine, -1); // Ensure it stays behind other elements
                 WeekGrid.Children.Add(highlightLine);
             }
         }
-        // Load tasks into the grid
-        private void LoadTasks()
-        {
-            //tasks = taskFileManager.GetAllTasks();
-            //if (tasks != null)
-            //{
-            //    foreach (var task in tasks)
-            //    {
-            //        DrawTask(task);
-            //    }
-            //}
-        }
 
-        private void DrawTask(MyTask task)
+        private void HighlightCurrentDate()
         {
-            DateTime taskDate = task.TaskTime.Date;
-            if (taskDate >= currentWeekStart && taskDate <= currentWeekStart.AddDays(6))
+            DateTime now = DateTime.Now;
+
+            // Check if current date falls within the current week
+            if (now >= currentWeekStart && now <= currentWeekStart.AddDays(6))
             {
-                int dayIndex = (int)(taskDate.DayOfWeek == DayOfWeek.Sunday ? 0 : taskDate.DayOfWeek - DayOfWeek.Sunday);
-                int hourIndex = task.TaskTime.Hour;
+                int currentDay = (int)(now.DayOfWeek == DayOfWeek.Sunday ? 0 : now.DayOfWeek - DayOfWeek.Sunday);
 
-                double taskHeight = 30; // Base height for a task
-                double taskWidth = (double)task.Duration.TotalHours / HOURS_IN_DAY * 100; // Width based on duration
-
-                Polygon triangle = new Polygon
+                Rectangle highlightColumn = new Rectangle
                 {
-                    Fill = Brushes.LightCoral,
-                    Points = new PointCollection
-                    {
-                        new Point(0, taskHeight),
-                        new Point(taskWidth, taskHeight),
-                        new Point(taskWidth / 2, 0)
-                    },
-                    Tag = task
+                    Fill = Brushes.LightBlue,
+                    Opacity = 0.3, // Set this based on the row height
                 };
 
-                triangle.MouseLeftButtonDown += Task_Clicked;
-
-                Grid.SetRow(triangle, hourIndex + 1);
-                Grid.SetColumn(triangle, dayIndex + 1);
-                WeekGrid.Children.Add(triangle);
+                Grid.SetColumn(highlightColumn, currentDay + 1);
+                Grid.SetRow(highlightColumn, 0);
+                Panel.SetZIndex(highlightColumn, -1); // Ensure it stays behind other elements
+                Grid.SetRowSpan(highlightColumn,24); // Span across all days
+                WeekGrid.Children.Add(highlightColumn);
             }
         }
+
 
         private void Task_Clicked(object sender, MouseButtonEventArgs e)
         {
-            if (sender is Polygon taskPolygon && taskPolygon.Tag is MyTask task)
-            {
-                // Open an edit dialog or form here
-                //EditTask(task);
-                LoadTasks(); // Reload tasks after editing
-            }
-        }
+            // Assuming the sender is a Border with task information
+            Border taskBorder = sender as Border;
 
-        private void EditTask(MyTask task)
-        {
-            //    // Implement the editing logic here (e.g., open a new window to edit task details)
-            //    // After editing, refresh the tasks
-            //    taskFileManager.UpdateTask(task); // Save updated task
+            if (taskBorder != null)
+            {
+                // Find the task associated with this border
+                TextBlock titleTextBlock = taskBorder.Child as TextBlock;
+
+                // You might want to get the title from the taskBorder or a data context
+                int taskId = int.Parse(titleTextBlock.Tag.ToString()); // Assuming the title is stored here
+                // Retrieve the task details from your task collection
+                MyTask selectedTask = taskFileManager.GetAllTasks().FirstOrDefault(t => t.Id == taskId);
+
+                if (selectedTask != null)
+                {
+                    // Populate the fields in the TaskPopup with the task details
+                    TaskIDBox.Text = selectedTask.Id.ToString();
+                    TaskNameBox.Text = selectedTask.Title;
+                    TaskDescriptionBox.Text = selectedTask.Description;
+                    TaskLocationBox.Text = selectedTask.Location;
+                    TaskDatePicker.SelectedDate = selectedTask.TaskTime; // Assuming this is the date
+                    TaskStartTimeComboBox.SelectedItem = TaskStartTimeComboBox.Items
+                                    .Cast<ComboBoxItem>()
+                                    .FirstOrDefault(item => item.Tag.ToString() == $"{selectedTask.TaskTime.Hour:00}:00");
+                    if (selectedTask.Duration.Minutes % 10 == 0)
+                    {
+                        TaskEndTimeComboBox.SelectedItem = TaskEndTimeComboBox.Items
+                                         .Cast<ComboBoxItem>()
+                                         .FirstOrDefault(item => item.Tag.ToString() == $"{(selectedTask.Duration.Hours + selectedTask.TaskTime.Hour):00}:00");
+                    }
+                    else
+                    {
+                        TaskEndTimeComboBox.SelectedItem = TaskEndTimeComboBox.Items
+                                         .Cast<ComboBoxItem>()
+                                         .FirstOrDefault(item => item.Tag.ToString() == "23:59");
+                    }
+                    AllDayCheckBox.IsChecked = selectedTask.Duration == new TimeSpan(23,59,00); // Assuming this property exists
+
+                    // Open the TaskPopup
+                    TaskPopup.IsOpen = true;
+                }
+            }
         }
 
         private void CreateTaskButton_Click(object sender, RoutedEventArgs e)
         {
-            //    // Logic to create a new task
-            //    // Show a dialog or form to get task details, then call CreateTask
-            //    MyTask newTask = new MyTask(taskFileManager.GetNextTaskID(), "New Task", "Description", "Location", DateTime.Now, null);
-            //    taskFileManager.CreateTask(newTask);
-            //    LoadTasks(); // Refresh the task list
+            TaskNameBox.Text = "";
+            TaskIDBox.Text = "";
+            TaskDescriptionBox.Text = "";
+            TaskLocationBox.Text = "";
+            AllDayCheckBox.IsChecked = false;
+            TaskPopup.IsOpen = true;
         }
 
+        private void DeleteButton_Click(object sender, RoutedEventArgs e)
+        {
+            int? taskID = int.Parse(TaskIDBox.Text);
+            taskFileManager.DeleteTask((int)taskID);
+            TaskPopup.IsOpen = false;
+            TaskIDBox.Text = null;
+            InitializeWeekGrid();
+        }
+        private void SubmitButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Get task details from the textboxes
+            int? taskID = null;
+            if (TaskIDBox.Text != "")
+            {
+                taskID = int.Parse(TaskIDBox.Text);
+            }
+            string taskName = TaskNameBox.Text;
+            string taskDescription = TaskDescriptionBox.Text;
+            string taskLocation = TaskLocationBox.Text;
+
+            // Get the selected date from the DatePicker
+            DateTime taskDate = TaskDatePicker.SelectedDate ?? DateTime.Now;
+
+            // Get start and end time from the ComboBoxes
+            string startTimeString = (TaskStartTimeComboBox.SelectedItem as ComboBoxItem)?.Tag.ToString();
+            string endTimeString = (TaskEndTimeComboBox.SelectedItem as ComboBoxItem)?.Tag.ToString();
+
+            DateTime taskStartTime = taskDate.Date.Add(TimeSpan.Parse(startTimeString ?? "00:00"));
+            DateTime taskEndTime = taskDate.Date.Add(TimeSpan.Parse(endTimeString ?? "00:00"));
+
+            // Check if "All Day" is checked
+            if (AllDayCheckBox.IsChecked == true)
+            {
+                taskStartTime = taskDate.Date; // Start at 00:00
+                taskEndTime = taskDate.Date.AddDays(1).AddTicks(-1); // End at 23:59:59.9999999
+            }
+
+            // Create a new MyTask object
+            if (taskID != null && taskFileManager.GetAllTasks().Any(t => t.Id == taskID))
+            {
+                MyTask updatedTask = new MyTask((int)taskID, taskName, taskDescription, taskLocation, taskStartTime, taskEndTime - taskStartTime);
+                taskFileManager.UpdateTask(updatedTask);
+                MessageBox.Show("updated successfully " + taskName + taskID);
+            }
+            else
+            {
+
+                MyTask newTask = new MyTask(0, taskName, taskDescription, taskLocation, taskStartTime, taskEndTime - taskStartTime);
+                newTask.Id = taskFileManager.GetNextTaskID();
+                // (Optional) Add logic to store or display the new task
+                taskFileManager.CreateTask(newTask);
+            }
+            // Close the popup after submission
+            TaskPopup.IsOpen = false;
+            TaskIDBox.Text = null;
+            InitializeWeekGrid();
+            // Clear the fields for next input
+            TaskNameBox.Text = "";
+            TaskDescriptionBox.Text = "";
+            TaskLocationBox.Text = "";
+            TaskDatePicker.SelectedDate = null;
+            TaskStartTimeComboBox.SelectedIndex = -1; // Reset the start time selection
+            TaskEndTimeComboBox.SelectedIndex = -1; // Reset the end time selection
+            AllDayCheckBox.IsChecked = false; // Reset the all-day checkbox
+
+        }
+
+        // Event handlers for All Day checkbox
+        private void AllDayCheckBox_Checked(object sender, RoutedEventArgs e)
+        {
+            TaskStartTimeComboBox.IsEnabled = false;
+            TaskEndTimeComboBox.IsEnabled = false;
+        }
+
+        private void AllDayCheckBox_Unchecked(object sender, RoutedEventArgs e)
+        {
+            TaskStartTimeComboBox.IsEnabled = true;
+            TaskEndTimeComboBox.IsEnabled = true;
+        }
+        private SolidColorBrush GetRandomBrush()
+        {
+            Random random = new Random();
+            Color randomColor = Color.FromArgb(
+                255, // Alpha
+                (byte)random.Next(256), // Red
+                (byte)random.Next(256), // Green
+                (byte)random.Next(256)  // Blue
+            );
+            return new SolidColorBrush(randomColor); // Return a SolidColorBrush
+        }
+
+
+
+        //*************************************************************************************************
+        // intercets with - adjust the width 
     }
 
     public static class DateTimeExtensions
